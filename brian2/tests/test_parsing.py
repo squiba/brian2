@@ -16,9 +16,8 @@ from brian2.core.variables import Constant
 from brian2.groups.group import Group
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.utils.logger import std_silent
-from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
-                                      CPPNodeRenderer,
-                                      )
+from brian2.parsing.rendering import (NodeRenderer, numpy_renderer,
+                                      cpp_renderer, node_renderer)
 from brian2.parsing.dependencies import abstract_code_dependencies
 from brian2.parsing.expressions import (is_boolean_expression,
                                         parse_expression_dimensions,
@@ -28,7 +27,7 @@ from brian2.parsing.functions import (abstract_code_from_function,
                                       extract_abstract_code_functions,
                                       substitute_abstract_code_functions)
 from brian2.units import (volt, amp, DimensionMismatchError,
-                          have_same_dimensions, Unit, get_unit)
+                          have_same_dimensions)
 
 try:
     from scipy import weave
@@ -140,18 +139,18 @@ def cpp_evaluator(expr, ns):
 
 @attr('codegen-independent')
 def test_parse_expressions_python():
-    parse_expressions(NodeRenderer(), eval)
+    parse_expressions(node_renderer, eval)
 
 
 @attr('codegen-independent')
 def test_parse_expressions_numpy():
-    parse_expressions(NumpyNodeRenderer(), numpy_evaluator)
+    parse_expressions(numpy_renderer, numpy_evaluator)
 
 
 def test_parse_expressions_cpp():
     if prefs.codegen.target != 'weave':
         raise SkipTest('weave-only test')
-    parse_expressions(CPPNodeRenderer(), cpp_evaluator)
+    parse_expressions(cpp_renderer, cpp_evaluator)
 
 
 @attr('codegen-independent')
@@ -442,13 +441,12 @@ def test_sympytools():
 
 @attr('codegen-independent')
 def test_error_messages():
-    nr = NodeRenderer()
     expr_expected = [('3^2', '^', '**'),
                      ('int(not_refractory | (v > 30))', '|', 'or'),
                      ('int((v > 30) & (w < 20))', '&', 'and')]
     for expr, expected_1, expected_2 in expr_expected:
         try:
-            nr.render_expr(expr)
+            node_renderer.render_expr(expr)
             raise AssertionError('Excepted {} to raise a '
                                  'SyntaxError.'.format(expr))
         except SyntaxError as exc:

@@ -1,6 +1,7 @@
 import ast
 import inspect
 
+from brian2.parsing.rendering import node_renderer
 from brian2.utils.stringtools import deindent, indent, get_identifiers
 
 from rendering import NodeRenderer
@@ -83,15 +84,14 @@ def abstract_code_from_function(func):
         raise SyntaxError("No support for default values in functions")
     
     nodes = funcnode.body
-    nr = NodeRenderer()
     lines = []
     return_expr = None
     for node in nodes:
         if node.__class__ is ast.Return:
-            return_expr = nr.render_node(node.value)
+            return_expr = node_renderer.render_node(node.value)
             break
         else:
-            lines.append(nr.render_node(node))
+            lines.append(node_renderer.render_node(node))
     abstract_code = '\n'.join(lines)
     try:
         # Python 2
@@ -261,12 +261,11 @@ def substitute_abstract_code_functions(code, funcs):
         newlines.append(line)
         
     # Now we render to a code string
-    nr = NodeRenderer()
-    newcode = '\n'.join(nr.render_node(line) for line in newlines)
+    newcode = '\n'.join(node_renderer.render_node(line) for line in newlines)
     
     # We recurse until no changes in the code to ensure that all functions
     # are expanded if one function refers to another, etc.
-    if newcode==code:
+    if newcode == code:
         return newcode
     else:
         return substitute_abstract_code_functions(newcode, funcs)

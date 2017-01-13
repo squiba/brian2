@@ -10,7 +10,7 @@ from sympy.printing.str import StrPrinter
 
 from brian2.core.functions import (DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS, log10,
                                    Function)
-from brian2.parsing.rendering import SympyNodeRenderer
+from brian2.parsing.rendering import sympy_renderer
 
 
 def check_expression_for_multiple_stateful_functions(expr, variables):
@@ -36,6 +36,8 @@ def check_expression_for_multiple_stateful_functions(expr, variables):
 
 SYMPY_NAMESPACE = None
 
+#: A dictionary mapping string expressions to the corresponding sympy object
+_str_to_sympy_cache = {}
 
 def str_to_sympy(expr, variables=None):
     '''
@@ -79,22 +81,22 @@ def str_to_sympy(expr, variables=None):
 
     if variables is None:
         variables = {}
-    check_expression_for_multiple_stateful_functions(expr, variables)
     if SYMPY_NAMESPACE is None:
         SYMPY_NAMESPACE = {}
         exec 'from sympy import *' in SYMPY_NAMESPACE
         # also add the log10 function to the namespace
         SYMPY_NAMESPACE['log10'] = log10
         SYMPY_NAMESPACE['_vectorisation_idx'] = sympy.Symbol('_vectorisation_idx')
-    rendered = SympyNodeRenderer().render_expr(expr)
-
-    try:
-        s_expr = eval(rendered, SYMPY_NAMESPACE)
-    except (TypeError, ValueError, NameError) as ex:
-        raise SyntaxError('Error during evaluation of sympy expression: '
-                          + str(ex))
-
-    return s_expr
+    if expr not in _str_to_sympy_cache:
+        check_expression_for_multiple_stateful_functions(expr, variables)
+        rendered = sympy_renderer.render_expr(expr)
+        try:
+            s_expr = eval(rendered, SYMPY_NAMESPACE)
+        except (TypeError, ValueError, NameError) as ex:
+            raise SyntaxError('Error during evaluation of sympy expression: '
+                              + str(ex))
+        _str_to_sympy_cache[expr] = s_expr
+    return _str_to_sympy_cache[expr]
 
 
 class CustomSympyPrinter(StrPrinter):
@@ -130,6 +132,8 @@ class CustomSympyPrinter(StrPrinter):
 
 PRINTER = CustomSympyPrinter()
 
+#: A dictionary mapping sympy objects to the corresponding string expression
+_sympy_to_str_cache = {}
 
 def sympy_to_str(sympy_expr):
     '''
@@ -148,26 +152,26 @@ def sympy_to_str(sympy_expr):
     str_expr : str
         A string representing the sympy expression.
     '''
-    
-    # replace the standard functions by our names if necessary
-    replacements = dict((f.sympy_func, sympy.Function(name)) for
-                        name, f in DEFAULT_FUNCTIONS.iteritems()
-                        if f.sympy_func is not None and isinstance(f.sympy_func,
-                                                                   sympy.FunctionClass)
-                        and str(f.sympy_func) != name)
-    # replace constants with our names as well
-    replacements.update(dict((c.sympy_obj, sympy.Symbol(name)) for
-                             name, c in DEFAULT_CONSTANTS.iteritems()
-                             if str(c.sympy_obj) != name))
+    if sympy_expr not in _sympy_to_str_cache:
+        # replace the standard functions by our names if necessary
+        replacements = dict((f.sympy_func, sympy.Function(name)) for
+                            name, f in DEFAULT_FUNCTIONS.iteritems()
+                            if f.sympy_func is not None and isinstance(f.sympy_func,
+                                                                       sympy.FunctionClass)
+                            and str(f.sympy_func) != name)
+        # replace constants with our names as well
+        replacements.update(dict((c.sympy_obj, sympy.Symbol(name)) for
+                                 name, c in DEFAULT_CONSTANTS.iteritems()
+                                 if str(c.sympy_obj) != name))
 
-    # Replace _vectorisation_idx by an empty symbol
-    replacements[sympy.Symbol('_vectorisation_idx')] = sympy.Symbol('')
-    for old, new in replacements.iteritems():
-        if sympy_expr.has(old):
-            sympy_expr = sympy_expr.subs(old, new)
+        # Replace _vectorisation_idx by an empty symbol
+        replacements[sympy.Symbol('_vectorisation_idx')] = sympy.Symbol('')
+        for old, new in replacements.iteritems():
+            if sympy_expr.has(old):
+                sympy_expr = sympy_expr.subs(old, new)
 
-    return PRINTER.doprint(sympy_expr)
-
+        _sympy_to_str_cache[sympy_expr] = PRINTER.doprint(sympy_expr)
+    return _sympy_to_str_cache[sympy_expr]
 
 def replace_constants(sympy_expr, variables=None):
     '''

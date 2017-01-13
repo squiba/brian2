@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 
 from brian2.parsing.bast import brian_dtype_from_dtype
-from brian2.parsing.rendering import NumpyNodeRenderer
+from brian2.parsing.rendering import numpy_renderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import ArrayVariable
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent
@@ -33,7 +33,7 @@ class NumpyCodeGenerator(CodeGenerator):
 
     def translate_expression(self, expr):
         expr = word_substitute(expr, self.func_name_replacements)
-        return NumpyNodeRenderer().render_expr(expr, self.variables).strip()
+        return numpy_renderer.render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):
         # TODO: optimisation, translate arithmetic to a sequence of inplace
@@ -79,7 +79,7 @@ class NumpyCodeGenerator(CodeGenerator):
         if statement.var in used_variables:
             raise VectorisationError()
 
-        expr = NumpyNodeRenderer().render_expr(statement.expr)
+        expr = numpy_renderer.render_expr(statement.expr)
 
         if statement.op == ':=' or indices[statement.var] == '_idx' or not statement.inplace:
             if statement.op == ':=':

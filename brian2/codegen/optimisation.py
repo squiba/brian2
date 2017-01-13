@@ -9,10 +9,9 @@ import itertools
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 from brian2.core.variables import AuxiliaryVariable
 from brian2.parsing.bast import (brian_ast, BrianASTRenderer, dtype_hierarchy,
-                                 brian_dtype_from_dtype, brian_dtype_from_value)
-from brian2.parsing.rendering import NodeRenderer
+                                 brian_dtype_from_dtype)
+from brian2.parsing.rendering import NodeRenderer, node_renderer
 from brian2.utils.stringtools import get_identifiers, word_substitute
-from brian2.units.fundamentalunits import DIMENSIONLESS
 
 from .statements import Statement
 
@@ -192,7 +191,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
         if not node.stateless:
             return node
         # try fully evaluating using assumptions
-        expr = NodeRenderer().render_node(node)
+        expr = node_renderer.render_node(node)
         val, evaluated = evaluate_expr(expr, self.assumptions_ns)
         if evaluated:
             if node.dtype == 'boolean':

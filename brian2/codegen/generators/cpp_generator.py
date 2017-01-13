@@ -5,7 +5,7 @@ import numpy
 from brian2.utils.stringtools import (deindent, stripped_deindented_lines,
                                       word_substitute)
 from brian2.utils.logger import get_logger
-from brian2.parsing.rendering import CPPNodeRenderer
+from brian2.parsing.rendering import cpp_renderer
 from brian2.core.functions import Function, DEFAULT_FUNCTIONS
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.variables import ArrayVariable
@@ -167,7 +167,7 @@ class CPPCodeGenerator(CodeGenerator):
 
     def translate_expression(self, expr):
         expr = word_substitute(expr, self.func_name_replacements)
-        return CPPNodeRenderer().render_expr(expr).strip()
+        return cpp_renderer.render_expr(expr).strip()
 
     def translate_statement(self, statement):
         var, op, expr, comment = (statement.var, statement.op,

@@ -11,7 +11,7 @@ from brian2.core.variables import (Constant, AuxiliaryVariable,
 from .base import CodeGenerator
 
 
-__all__ = ['CythonCodeGenerator']
+__all__ = ['CythonCodeGenerator', 'cython_renderer']
 
 
 data_type_conversion_table = [
@@ -51,6 +51,7 @@ class CythonNodeRenderer(NodeRenderer):
         else:
             return super(CythonNodeRenderer, self).render_BinOp(node)
 
+cython_renderer = CythonNodeRenderer()
 
 class CythonCodeGenerator(CodeGenerator):
     '''
@@ -61,7 +62,7 @@ class CythonCodeGenerator(CodeGenerator):
 
     def translate_expression(self, expr):
         expr = word_substitute(expr, self.func_name_replacements)
-        return CythonNodeRenderer().render_expr(expr, self.variables).strip()
+        return cython_renderer.render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):
         var, op, expr, comment = (statement.var, statement.op,

@@ -5,9 +5,9 @@ import sympy
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 
 __all__ = ['NodeRenderer',
-           'NumpyNodeRenderer',
-           'CPPNodeRenderer',
-           'SympyNodeRenderer'
+           'numpy_renderer',
+           'cpp_renderer',
+           'sympy_renderer'
            ]
 
 
@@ -45,12 +45,16 @@ class NodeRenderer(object):
 
     def __init__(self, use_vectorisation_idx=True):
         self.use_vectorisation_idx = use_vectorisation_idx
+        self._expr_cache = {}
+        self._node_cache = {}
 
     def render_expr(self, expr, strip=True):
         if strip:
             expr = expr.strip()
-        node = ast.parse(expr, mode='eval')
-        return self.render_node(node.body)
+        if expr not in self._expr_cache:
+            node = ast.parse(expr, mode='eval')
+            self._expr_cache[expr] = self.render_node(node.body)
+        return self._expr_cache[expr]
 
     def render_code(self, code):
         lines = []
@@ -263,3 +267,7 @@ class CPPNodeRenderer(NodeRenderer):
     def render_Assign(self, node):
         return NodeRenderer.render_Assign(self, node)+';'
 
+node_renderer = NodeRenderer()
+numpy_renderer = NumpyNodeRenderer()
+sympy_renderer = SympyNodeRenderer()
+cpp_renderer = CPPNodeRenderer()

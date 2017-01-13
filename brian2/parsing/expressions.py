@@ -5,7 +5,7 @@ AST parsing based analysis of expressions
 import ast
 
 from brian2.core.functions import Function
-from brian2.parsing.rendering import NodeRenderer
+from brian2.parsing.rendering import NodeRenderer, node_renderer
 from brian2.units.fundamentalunits import (Unit,
                                            DimensionMismatchError,
                                            have_same_dimensions,
@@ -250,8 +250,8 @@ def parse_expression_dimensions(expr, variables):
             if not have_same_dimensions(left, right):
                 msg = ('Comparison of expressions with different units. Expression '
                        '"{}" has unit ({}), while expression "{}" has units ({})').format(
-                            NodeRenderer().render_node(expr.left), get_dimensions(left),
-                            NodeRenderer().render_node(expr.comparators[0]), get_dimensions(right))
+                            node_renderer.render_node(expr.left), get_dimensions(left),
+                            node_renderer.render_node(expr.comparators[0]), get_dimensions(right))
                 raise DimensionMismatchError(msg)
         # but the result is a bool, so we just return 1 as the unit
         return DIMENSIONLESS
@@ -286,7 +286,7 @@ def parse_expression_dimensions(expr, variables):
                     raise TypeError(('Argument number %d for function %s was '
                                      'expected to be a boolean value, but is '
                                      '"%s".') % (idx + 1, expr.func.id,
-                                                 NodeRenderer().render_node(arg)))
+                                                 node_renderer.render_node(arg)))
             else:
                 arg_unit = parse_expression_dimensions(arg, variables)
                 if not have_same_dimensions(arg_unit, expected_unit):
@@ -294,7 +294,7 @@ def parse_expression_dimensions(expr, variables):
                            'correct units. Expression "{}" has units ({}), but '
                            'should be ({}).').format(
                         idx+1, expr.func.id,
-                        NodeRenderer().render_node(arg),
+                        node_renderer.render_node(arg),
                         get_dimensions(arg_unit), get_dimensions(expected_unit))
                     raise DimensionMismatchError(msg)
 
@@ -318,9 +318,9 @@ def parse_expression_dimensions(expr, variables):
             op_symbol = {'Add': '+', 'Sub': '-', 'Mod': '%'}.get(op)
             fail_for_dimension_mismatch(left, right,
                                         'Cannot determine units for '
-                                        '%s %s %s' % (NodeRenderer().render_node(expr.left),
+                                        '%s %s %s' % (node_renderer.render_node(expr.left),
                                                       op_symbol,
-                                                      NodeRenderer().render_node(expr.right)))
+                                                      node_renderer.render_node(expr.right)))
             u = left
         elif op=='Mult':
             u = left*right

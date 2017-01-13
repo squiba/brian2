@@ -23,7 +23,7 @@ from brian2.devices.device import Device, all_devices, set_device, reset_device
 from brian2.core.variables import *
 from brian2.core.namespace import get_local_namespace
 from brian2.groups.group import Group
-from brian2.parsing.rendering import CPPNodeRenderer
+from brian2.parsing.rendering import cpp_renderer
 from brian2.synapses.synapses import Synapses
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
@@ -186,8 +186,7 @@ class CPPStandaloneDevice(Device):
                 code = word_substitute(code, {k: v})
             elif isinstance(v, numbers.Number):
                 # Use a renderer to correctly transform constants such as True or inf
-                renderer = CPPNodeRenderer()
-                string_value = renderer.render_expr(repr(v))
+                string_value = cpp_renderer.render_expr(repr(v))
                 if v < 0:
                     string_value = '(%s)' % string_value
                 code = word_substitute(code, {k: string_value})
@@ -330,7 +329,7 @@ class CPPStandaloneDevice(Device):
 
         if arr.size == 1:
             if var.size == 1:
-                value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
+                value = cpp_renderer.render_expr(repr(arr.item(0)))
                 # For a single assignment, generate a code line instead of storing the array
                 self.main_queue.append(('set_by_single_value', (array_name,
                                                                 0,
@@ -360,7 +359,7 @@ class CPPStandaloneDevice(Device):
 
         if (isinstance(item, int) or (isinstance(item, np.ndarray) and item.shape==())) and value.size == 1:
             array_name = self.get_array_name(variableview.variable, access_data=False)
-            value_str = CPPNodeRenderer().render_expr(repr(np.asarray(value).item(0)))
+            value_str = cpp_renderer.render_expr(repr(np.asarray(value).item(0)))
             if self.array_cache.get(variableview.variable, None) is not None:
                 self.array_cache[variableview.variable][item] = value
             # For a single assignment, generate a code line instead of storing the array
@@ -545,7 +544,7 @@ class CPPStandaloneDevice(Device):
                     {arrayname}[i] = {value};
                 }}
                 '''.format(arrayname=arrayname, size_str=size_str,
-                           value=CPPNodeRenderer().render_expr(repr(value)),
+                           value=cpp_renderer.render_expr(repr(value)),
                            pragma=openmp_pragma('static'))
                 main_lines.extend(code.split('\n'))
             elif func=='set_by_array':
